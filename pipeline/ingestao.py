@@ -1,4 +1,4 @@
-"""Ingestão: copia os 14 .csv da pasta raw/ para o schema raw do f1.duckdb.
+r"""Ingestão: copia os 14 .csv da pasta raw/ para o schema raw do f1.duckdb.
 
 Execução:
     uv run python -m pipeline.ingestao
@@ -16,10 +16,10 @@ Execução:
 2. PROIBIÇÕES (a regra central desta etapa)
    Nenhuma conversão de tipo. Nenhuma linha descartada ou deduplicada.
    Nenhum nome de coluna alterado. Nenhum valor corrigido, preenchido ou
-   normalizado. Data e tempo de volta continuam texto. O texto \\N, que o
-   dataset usa para marcar ausência, continua sendo o texto \\N.
+   normalizado. Data e tempo de volta continuam texto. O texto \N, que o
+   dataset usa para marcar ausência, continua sendo o texto \N.
    Por quê: a fronteira entre "o dado que chegou" e "o dado que eu decidi"
-   fica na passagem de raw para refined. Transformar \\N em NULL é uma
+   fica na passagem de raw para refined. Transformar \N em NULL é uma
    decisão, e decisão mora na transformação, onde fica escrita.
 
 3. REEXECUÇÃO
@@ -36,7 +36,7 @@ Execução:
 
 5. TIPAGEM
    Toda coluna entra como texto (dtype=str), inferência desligada.
-   Por quê: as colunas numéricas têm \\N misturado com número; a inferência
+   Por quê: as colunas numéricas têm \N misturado com número; a inferência
    ou estoura ou trata cada tabela de um jeito. Tudo texto é previsível; a
    conversão acontece na transformação, como decisão registrada.
 
@@ -63,7 +63,7 @@ Critérios de aceite:
     SELECT count(*) FROM read_csv('raw/<arquivo>.csv', all_varchar = true);
 - Rodar duas vezes seguidas imprime exatamente a mesma coisa.
 - DESCRIBE raw.resultados mostra todas as colunas como VARCHAR.
-- SELECT count(*) FROM raw.resultados WHERE position = '\\N' devolve > 0.
+- SELECT count(*) FROM raw.resultados WHERE position = '\N' devolve > 0.
 - SELECT forename, surname FROM raw.pilotos WHERE surname = 'Pérez'
   devolve a linha com o acento correto.
 - Remover um arquivo da pasta faz o script parar antes de gravar qualquer
@@ -72,6 +72,7 @@ Critérios de aceite:
 """
 
 import sys
+from pathlib import Path
 
 import pandas as pd
 
@@ -97,7 +98,16 @@ ARQUIVO_PARA_TABELA = {
 }
 
 
-def ler_csv(caminho) -> pd.DataFrame:
+def ler_csv(caminho: Path) -> pd.DataFrame:
+    r"""Lê um CSV do dataset como texto puro, sem inferir tipos.
+
+    Args:
+        caminho: arquivo .csv em UTF-8.
+
+    Returns:
+        DataFrame com todas as colunas str; só o campo vazio vira nulo, e
+        textos como \N, "NA" ou "NULL" continuam como estão.
+    """
     return pd.read_csv(
         caminho,
         encoding="utf-8",
@@ -111,10 +121,12 @@ def ler_csv(caminho) -> pd.DataFrame:
 
 
 def formatar(n: int) -> str:
+    """Formata um inteiro com milhar em ponto, ex.: 589081 -> "589.081"."""
     return f"{n:,}".replace(",", ".")
 
 
 def main() -> None:
+    """Executa a ingestão: confere os 14 CSVs, grava raw e imprime contagens."""
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 

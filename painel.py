@@ -105,6 +105,12 @@ class DadosFaltando(Exception):
     """f1.duckdb ausente, ou marts que não existem no banco."""
 
     def __init__(self, faltando: list[str], sem_banco: bool = False):
+        """Guarda o que falta para a página explicar o problema.
+
+        Args:
+            faltando: nomes dos marts ausentes (todos, se não há banco).
+            sem_banco: True quando o próprio f1.duckdb não existe.
+        """
         self.faltando = faltando
         self.sem_banco = sem_banco
         super().__init__(", ".join(faltando))
@@ -114,6 +120,20 @@ class DadosFaltando(Exception):
 
 
 def ler(marts: Iterable[str] = MARTS) -> dict[str, pd.DataFrame]:
+    """Lê cada mart com SELECT * numa conexão somente leitura.
+
+    A conexão é aberta e fechada aqui dentro, para não segurar o arquivo
+    enquanto o pipeline tenta gravar.
+
+    Args:
+        marts: nomes das tabelas do schema marts a ler.
+
+    Returns:
+        Dicionário nome do mart -> DataFrame, na ordem do ORDER BY do .sql.
+
+    Raises:
+        DadosFaltando: se o f1.duckdb não existir ou faltar algum mart.
+    """
     marts = list(marts)
     # Checa antes de conectar: o erro do connect() read_only num arquivo
     # inexistente não diz que falta rodar o pipeline.
@@ -139,13 +159,32 @@ def ler(marts: Iterable[str] = MARTS) -> dict[str, pd.DataFrame]:
 # ---------------------------------------------------------------- formato
 
 
-def numero(valor, casas: int = 0) -> str:
+def numero(valor: float, casas: int = 0) -> str:
+    """Formata um número no padrão brasileiro, sem depender do locale.
+
+    Args:
+        valor: número a formatar.
+        casas: casas decimais.
+
+    Returns:
+        Texto com milhar em ponto e decimal em vírgula, ex.: "1.125" ou
+        "1.234,5".
+    """
     # Formata no padrão americano e troca os separadores: não depende do
     # locale da máquina.
     return f"{valor:,.{casas}f}".translate(str.maketrans(",.", ".,"))
 
 
-def pct(valor, casas: int = 1) -> str:
+def pct(valor: float, casas: int = 1) -> str:
+    """Formata um percentual já em escala 0-100, ex.: 23.45 -> "23,5%".
+
+    Args:
+        valor: percentual (não fração).
+        casas: casas decimais.
+
+    Returns:
+        Texto no padrão brasileiro seguido de "%".
+    """
     return f"{numero(valor, casas)}%"
 
 
@@ -183,6 +222,14 @@ def _barras_horizontais(
 
 
 def grafico_abandono(df: pd.DataFrame) -> go.Figure:
+    """Linha da taxa de abandono por temporada (mart abandonos).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     fig = px.line(
         df,
         x="ano",
@@ -196,27 +243,71 @@ def grafico_abandono(df: pd.DataFrame) -> go.Figure:
 
 
 def grafico_vitorias_pilotos(df: pd.DataFrame) -> go.Figure:
+    """Top 10 pilotos por vitórias (mart ranking_pilotos).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     return _barras_horizontais(
-        df, "piloto", "vitorias", "04 · Pilotos com mais vitórias",
-        "Vitórias (corridas)", "Piloto",
+        df,
+        "piloto",
+        "vitorias",
+        "04 · Pilotos com mais vitórias",
+        "Vitórias (corridas)",
+        "Piloto",
     )
 
 
 def grafico_vitorias_equipes(df: pd.DataFrame) -> go.Figure:
+    """Top 10 equipes por vitórias (mart ranking_equipes).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     return _barras_horizontais(
-        df, "equipe", "vitorias", "05 · Equipes com mais vitórias",
-        "Vitórias (corridas)", "Equipe",
+        df,
+        "equipe",
+        "vitorias",
+        "05 · Equipes com mais vitórias",
+        "Vitórias (corridas)",
+        "Equipe",
     )
 
 
 def grafico_vitorias_nacionalidade(df: pd.DataFrame) -> go.Figure:
+    """Top 10 nacionalidades por vitórias (mart por_nacionalidade).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     return _barras_horizontais(
-        df, "nacionalidade", "corridas_vencidas", "12 · Vitórias por nacionalidade",
-        "Vitórias (corridas)", "Nacionalidade",
+        df,
+        "nacionalidade",
+        "corridas_vencidas",
+        "12 · Vitórias por nacionalidade",
+        "Vitórias (corridas)",
+        "Nacionalidade",
     )
 
 
 def grafico_pole(df: pd.DataFrame) -> go.Figure:
+    """Barras do % de corridas vencidas pelo pole, por década.
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     fig = px.bar(
         df,
         x="decada",
@@ -231,13 +322,33 @@ def grafico_pole(df: pd.DataFrame) -> go.Figure:
 
 
 def grafico_motivos_abandono(df: pd.DataFrame) -> go.Figure:
+    """Top 10 motivos de abandono (mart motivos_abandono).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     return _barras_horizontais(
-        df, "motivo", "abandonos", "13 · Motivos de abandono",
-        "Abandonos (largadas)", "Motivo",
+        df,
+        "motivo",
+        "abandonos",
+        "13 · Motivos de abandono",
+        "Abandonos (largadas)",
+        "Motivo",
     )
 
 
 def grafico_ganho_posicoes(df: pd.DataFrame) -> go.Figure:
+    """Top 10 em ganho médio de posições (mart posicoes_ganhas).
+
+    Args:
+        df: DataFrame do mart, na ordem do ORDER BY do .sql.
+
+    Returns:
+        Figura plotly pronta para exibir.
+    """
     fig = px.scatter(
         df.head(TOP),
         x="media_posicoes_ganhas",

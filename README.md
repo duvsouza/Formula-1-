@@ -66,7 +66,8 @@ Formula1/
 ├── painel.py               leitura dos marts, formatação e gráficos (sem Streamlit)
 ├── app.py                  página Streamlit
 ├── ui.py                   abre o f1.duckdb na DuckDB UI
-└── pyproject.toml
+├── tests/                  testes (pytest), um arquivo por módulo
+└── pyproject.toml          dependências e configuração do ruff e do pytest
 ```
 
 O arquivo `f1.duckdb` é gerado pelo pipeline na raiz do projeto e não é
@@ -193,6 +194,36 @@ num relatório HTML).
 - Botão **Recarregar dados** limpa o cache depois de rodar o pipeline de novo.
   Se o banco ou algum mart faltar, a página mostra o que falta e o comando
   para gerar.
+
+## Testes e qualidade
+
+```bash
+uv run pytest                      # todos os testes
+uv run pytest -m "not integracao"  # só os unitários (não precisam do f1.duckdb)
+uv run pytest -m integracao        # só os critérios de aceite no banco real
+
+uv run ruff format .               # formata (PEP 8, linha de 88 colunas)
+uv run ruff check .                # lint: PEP 8, PEP 257, imports, bugs comuns
+```
+
+Os testes ficam em [tests/](tests/), um arquivo por módulo:
+
+- **Unitários** (`test_db`, `test_ingestao`, `test_transformacao`,
+  `test_marts`, `test_painel`): cada teste usa um `f1.duckdb` temporário
+  (fixture `banco` em [tests/conftest.py](tests/conftest.py)) e nunca toca o
+  banco do projeto. Cobrem as regras das specs: conversões e formatos
+  rejeitados, nulos, duplicatas, "nada é gravado" quando algo falha,
+  `ROLLBACK` dos marts, idempotência e formatação brasileira dos números.
+- **Integração** (`test_integracao`, marcados com `integracao`): conferem no
+  `f1.duckdb` real os critérios de aceite de
+  [specs/transformacao.md](specs/transformacao.md) e
+  [specs/marts.md](specs/marts.md) (contagens, somas exatas, campeões,
+  rankings). Abrem o banco somente leitura e são pulados se ele não existir
+  ou estiver travado por outro processo.
+
+O ruff está configurado no `pyproject.toml` com as regras `E`/`W`
+(pycodestyle/PEP 8), `F`, `I` (ordem dos imports), `N` (nomes), `D`
+(docstrings no estilo Google, PEP 257), `UP`, `B` e `SIM`.
 
 ## Explorando com SQL
 

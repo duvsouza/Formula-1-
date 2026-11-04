@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Ambiente e ferramentas
+.venv/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Gerados pelo pipeline (recriados com uv run python -m pipeline.*)
+*.duckdb
+*.duckdb.wal
+
+# Configuração local do Claude Code / MCP
+.mcp.json

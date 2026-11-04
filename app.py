@@ -13,6 +13,14 @@ st.set_page_config(page_title="Fórmula 1 · 75 anos", layout="wide")
 
 @st.cache_data(show_spinner="Lendo marts...")
 def carregar():
+    """Lê os marts usados pelo painel, guardando o resultado em cache.
+
+    Returns:
+        Dicionário nome do mart -> DataFrame, como devolvido por painel.ler.
+
+    Raises:
+        painel.DadosFaltando: se o f1.duckdb ou algum mart não existir.
+    """
     # Exceção não entra no cache: depois de rodar o pipeline, a próxima
     # execução da página já lê de novo.
     return painel.ler(painel.MARTS)
@@ -60,7 +68,7 @@ cartoes = [
     ("Abandono · % das largadas", painel.pct(kpis["pct_abandono"], 1)),
     ("Vencedores diferentes", painel.numero(kpis["vencedores"])),
 ]
-for coluna, (rotulo, valor) in zip(st.columns(6), cartoes):
+for coluna, (rotulo, valor) in zip(st.columns(6), cartoes, strict=True):
     coluna.metric(rotulo, valor)
 
 # ---------------------------------------------------------------- faixa 2
@@ -69,8 +77,12 @@ st.plotly_chart(painel.grafico_abandono(recorte), width="stretch")
 
 # ---------------------------------------------------------------- faixa 3
 c1, c2, c3 = st.columns(3)
-c1.plotly_chart(painel.grafico_vitorias_pilotos(dados["ranking_pilotos"]), width="stretch")
-c2.plotly_chart(painel.grafico_vitorias_equipes(dados["ranking_equipes"]), width="stretch")
+c1.plotly_chart(
+    painel.grafico_vitorias_pilotos(dados["ranking_pilotos"]), width="stretch"
+)
+c2.plotly_chart(
+    painel.grafico_vitorias_equipes(dados["ranking_equipes"]), width="stretch"
+)
 c3.plotly_chart(
     painel.grafico_vitorias_nacionalidade(dados["por_nacionalidade"]), width="stretch"
 )
@@ -78,5 +90,9 @@ c3.plotly_chart(
 # ---------------------------------------------------------------- faixa 4
 c1, c2, c3 = st.columns(3)
 c1.plotly_chart(painel.grafico_pole(dados["pole_vira_vitoria"]), width="stretch")
-c2.plotly_chart(painel.grafico_motivos_abandono(dados["motivos_abandono"]), width="stretch")
-c3.plotly_chart(painel.grafico_ganho_posicoes(dados["posicoes_ganhas"]), width="stretch")
+c2.plotly_chart(
+    painel.grafico_motivos_abandono(dados["motivos_abandono"]), width="stretch"
+)
+c3.plotly_chart(
+    painel.grafico_ganho_posicoes(dados["posicoes_ganhas"]), width="stretch"
+)

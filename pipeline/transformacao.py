@@ -84,6 +84,7 @@ Critérios de aceite: ver specs/transformacao.md.
 import sys
 from typing import NamedTuple
 
+import duckdb
 import pandas as pd
 
 from pipeline.db import conectar, criar_schema, gravar
@@ -95,6 +96,15 @@ MAX_EXEMPLOS = 5
 
 
 class Coluna(NamedTuple):
+    """Uma coluna de raw e como ela chega em refined.
+
+    Attributes:
+        original: nome em raw (ex.: "raceId").
+        nova: nome em refined (ex.: "id_corrida").
+        tipo: chave de CONVERSOES que define formato e conversão.
+        nulavel: se a coluna pode ter NULL em refined.
+    """
+
     original: str
     nova: str
     tipo: str  # chave de CONVERSOES
@@ -102,6 +112,7 @@ class Coluna(NamedTuple):
 
 
 def c(original: str, nova: str, tipo: str, nulavel: bool = False) -> Coluna:
+    """Atalho para declarar uma Coluna em uma linha no mapa COLUNAS."""
     return Coluna(original, nova, tipo, nulavel)
 
 
@@ -318,18 +329,22 @@ CHAVES: dict[str, list[str]] = {
 
 
 def q(nome: str) -> str:
+    """Põe um identificador SQL entre aspas duplas."""
     return f'"{nome}"'
 
 
 def valor(col: Coluna) -> str:
+    r"""Expressão SQL da coluna original com o texto \N trocado por NULL."""
     return f"NULLIF({q(col.original)}, '{AUSENTE}')"
 
 
 def formatar(n: int) -> str:
+    """Formata um inteiro com milhar em ponto, ex.: 589081 -> "589.081"."""
     return f"{n:,}".replace(",", ".")
 
 
-def tabelas_faltando(con) -> list[str]:
+def tabelas_faltando(con: duckdb.DuckDBPyConnection) -> list[str]:
+    """Lista as tabelas de COLUNAS que não existem no schema raw."""
     existentes = {
         linha[0]
         for linha in con.execute(
@@ -339,8 +354,20 @@ def tabelas_faltando(con) -> list[str]:
     return [t for t in COLUNAS if t not in existentes]
 
 
-def validar(con, tabela: str) -> tuple[list[str], dict]:
-    """Devolve (erros, números da tabela). Não grava nada."""
+def validar(
+    con: duckdb.DuckDBPyConnection, tabela: str
+) -> tuple[list[str], dict[str, int]]:
+    r"""Confere formatos, nulos e chaves de uma tabela de raw. Não grava nada.
+
+    Args:
+        con: conexão aberta com o banco.
+        tabela: nome da tabela (chave de COLUNAS).
+
+    Returns:
+        Tupla (erros, números). erros é a lista de mensagens, vazia se a
+        tabela pode ser transformada; números tem "raw" (linhas lidas),
+        "ausentes" (\N encontrados) e "duplicatas" (cópias idênticas).
+    """
     erros = []
     origem = f"{q(ORIGEM)}.{q(tabela)}"
     colunas = COLUNAS[tabela]
@@ -417,7 +444,19 @@ def validar(con, tabela: str) -> tuple[list[str], dict]:
     return erros, numeros
 
 
-def transformar(con, tabela: str) -> pd.DataFrame:
+def transformar(con: duckdb.DuckDBPyConnection, tabela: str) -> pd.DataFrame:
+    """Converte uma tabela de raw para os nomes e tipos de refined.
+
+    Supõe que validar() não achou erro nessa tabela.
+
+    Args:
+        con: conexão aberta com o banco.
+        tabela: nome da tabela (chave de COLUNAS).
+
+    Returns:
+        DataFrame sem cópias idênticas, ordenado pela chave, com dtypes
+        Arrow para preservar DECIMAL, DATE e TIME na gravação.
+    """
     colunas = COLUNAS[tabela]
     selecao = ",\n    ".join(
         f"{CONVERSOES[col.tipo][1].format(v=valor(col))} AS {q(col.nova)}"
@@ -436,6 +475,7 @@ def transformar(con, tabela: str) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Executa a etapa: valida as 14 tabelas de raw e só então grava refined."""
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
@@ -480,7 +520,7 @@ def main() -> None:
     linhas.append(
         ["total"] + [formatar(sum(n[k] for n in numeros.values())) for k in campos]
     )
-    larguras = [max(len(str(l[i])) for l in [cabecalho, *linhas]) for i in range(5)]
+    larguras = [max(len(str(lin[i])) for lin in [cabecalho, *linhas]) for i in range(5)]
     for linha in [cabecalho, *linhas]:
         print(
             f"{linha[0]:<{larguras[0]}}  "

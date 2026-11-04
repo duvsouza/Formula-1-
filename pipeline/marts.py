@@ -149,6 +149,7 @@ def _criar_mart(con: duckdb.DuckDBPyConnection, arquivo: Path, nome: str) -> int
 
 
 def main() -> None:
+    """Executa a etapa: recria o schema marts a partir de sql/marts/*.sql."""
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
@@ -187,9 +188,10 @@ def main() -> None:
         largura_nome = max(len(f"{DESTINO}.{n}") for n, _ in relatorio) + 2
         largura_num = max(len(_milhar(q)) for _, q in relatorio)
         for nome, linhas in relatorio:
+            unidade = "linha" if linhas == 1 else "linhas"
             print(
                 f"✓ {f'{DESTINO}.{nome}':<{largura_nome}}"
-                f"{_milhar(linhas):>{largura_num}} {'linha' if linhas == 1 else 'linhas'}"
+                f"{_milhar(linhas):>{largura_num}} {unidade}"
             )
         total = sum(q for _, q in relatorio)
         print(

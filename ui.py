@@ -53,6 +53,7 @@ URL = "http://localhost:4213"
 
 
 def main() -> None:
+    """Abre o f1.duckdb na DuckDB UI e mantém o servidor até o Ctrl+C."""
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
@@ -60,7 +61,9 @@ def main() -> None:
     # não existir.
     if not ARQUIVO_BANCO.is_file():
         print(f"Banco não encontrado: {ARQUIVO_BANCO}", file=sys.stderr)
-        print("Rode a ingestão antes: uv run python -m pipeline.ingestao", file=sys.stderr)
+        print(
+            "Rode a ingestão antes: uv run python -m pipeline.ingestao", file=sys.stderr
+        )
         sys.exit(1)
 
     con = None

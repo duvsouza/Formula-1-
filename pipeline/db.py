@@ -52,16 +52,38 @@ PASTA_RAW = _RAIZ / "raw"
 
 
 def conectar() -> duckdb.DuckDBPyConnection:
+    """Abre o f1.duckdb da raiz do projeto, criando o arquivo se faltar.
+
+    Returns:
+        Conexão de leitura e escrita; quem chama é responsável por fechar.
+    """
     return duckdb.connect(str(_ARQUIVO_BANCO))
 
 
 def criar_schema(con: duckdb.DuckDBPyConnection, nome: str) -> None:
+    """Cria o schema se ele ainda não existir.
+
+    Args:
+        con: conexão aberta com o banco.
+        nome: nome do schema.
+    """
     con.execute(f'CREATE SCHEMA IF NOT EXISTS "{nome}"')
 
 
 def gravar(
     con: duckdb.DuckDBPyConnection, df: pd.DataFrame, schema: str, tabela: str
 ) -> int:
+    """Grava o DataFrame como tabela, substituindo a anterior.
+
+    Args:
+        con: conexão aberta com o banco.
+        df: dados a gravar; os tipos das colunas viram os tipos da tabela.
+        schema: schema de destino (precisa existir).
+        tabela: nome da tabela.
+
+    Returns:
+        Número de linhas da tabela gravada, lido do banco.
+    """
     destino = f'"{schema}"."{tabela}"'
     # O DuckDB lê o DataFrame por uma view registrada na conexão; ela é
     # removida no finally para não sobrar nada além da tabela gravada.

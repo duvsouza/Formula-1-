@@ -14,3 +14,33 @@ dev = [
     "pytest>=9.2.0",
     "ruff>=0.17.3",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+# E/W: pycodestyle (PEP 8) · F: pyflakes · I: ordem dos imports
+# N: nomes (PEP 8) · D: docstrings (PEP 257) · UP: sintaxe moderna
+# B: bugs comuns · SIM: simplificações
+select = ["E", "W", "F", "I", "N", "D", "UP", "B", "SIM"]
+ignore = [
+    # Exceções com nome em português (DadosFaltando, FalhaEtapa): o sufixo
+    # "Error" não combina com o vocabulário do projeto.
+    "N818",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Testes: o nome da função já é a documentação.
+"tests/**" = ["D"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "integracao: lê o f1.duckdb gerado pelo pipeline (pulado se ele não existir)",
+]
