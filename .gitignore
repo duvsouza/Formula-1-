@@ -1,0 +1,11 @@
+﻿# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Banco gerado pelo pipeline
+*.duckdb
+*.duckdb.wal
+
+# Configuracao local
+.mcp.json
