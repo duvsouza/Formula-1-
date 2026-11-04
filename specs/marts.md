@@ -85,7 +85,10 @@ SPEC
    Arquivos, grão e pergunta:
    01_kpis                  1 linha     Tamanho do dataset: temporadas,
                                         corridas, circuitos, pilotos, equipes,
-                                        primeira e última corrida.
+                                        primeira e última corrida, % de
+                                        abandono das largadas da história
+                                        inteira, pilotos diferentes com ao
+                                        menos uma vitória.
    02_campeoes_pilotos      temporada   Campeão, pontos, vitórias no ano,
                                         corridas no ano, vantagem para o vice.
    03_campeoes_equipes      temporada   O mesmo para construtores (1958+,
@@ -129,10 +132,16 @@ SPEC
    12_por_nacionalidade     nacionalidade de piloto que largou
                                         Pilotos, corridas vencidas, títulos,
                                         pilotos campeões.
+   13_motivos_abandono      status de abandono
+                                        Abandonos e % dos abandonos da
+                                        história inteira. Empate: ordem
+                                        alfabética do motivo.
 
 CRITÉRIOS DE ACEITE
-   - A execução imprime 12 linhas ✓ e o total.
+   - A execução imprime 13 linhas ✓ e o total.
    - marts.kpis: 75 temporadas, 1.125 corridas, 77 circuitos.
+   - marts.kpis.pct_abandono fica entre o menor e o maior
+     marts.abandonos.pct_abandono.
    - marts.campeoes_pilotos: 75 linhas; 2024 = Max Verstappen, 437 pontos;
      1950 = Nino Farina, 30 pontos.
    - marts.campeoes_equipes: 67 linhas (1958–2024); 2024 = McLaren,
